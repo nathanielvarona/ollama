@@ -18,7 +18,7 @@ sign() {
     fi
 }
 
-COMMON_DARWIN_DEFS="-DCMAKE_OSX_DEPLOYMENT_TARGET=11.3 -DLLAMA_METAL_MACOSX_VERSION_MIN=11.3 -DCMAKE_SYSTEM_NAME=Darwin -DLLAMA_METAL_EMBED_LIBRARY=on"
+COMMON_DARWIN_DEFS="-DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 -DLLAMA_METAL_MACOSX_VERSION_MIN=11.3 -DCMAKE_SYSTEM_NAME=Darwin -DLLAMA_METAL_EMBED_LIBRARY=on"
 
 case "${GOARCH}" in
 "amd64")
@@ -65,6 +65,31 @@ case "${GOARCH}" in
         BUILD_DIR="../build/darwin/${ARCH}/cpu_avx2"
         echo "Building AVX2 CPU"
         EXTRA_LIBS="${EXTRA_LIBS} -framework Accelerate -framework Foundation"
+        build
+        sign ${BUILD_DIR}/bin/ollama_llama_server
+        compress
+
+        #
+        # Native Metal Support
+        #
+        init_vars
+        CMAKE_DEFS="${COMMON_CPU_DEFS} -DLLAMA_ACCELERATE=on -DLLAMA_NATIVE=on ${CMAKE_DEFS}"
+        BUILD_DIR="../build/darwin/${ARCH}/metal_native"
+        echo "Building Native Metal support"
+        EXTRA_LIBS="${EXTRA_LIBS} -framework Accelerate -framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders"
+        build
+        sign ${BUILD_DIR}/bin/ollama_llama_server
+        compress
+
+        #
+        # Metal with GPU Support
+        #
+        init_vars
+        # WARNING: Slow Peformance!
+        CMAKE_DEFS="${COMMON_CPU_DEFS} -DLLAMA_ACCELERATE=on -DLLAMA_METAL=on ${CMAKE_DEFS}"
+        BUILD_DIR="../build/darwin/${ARCH}/metal_gpu"
+        echo "Building for Metal with GPU support"
+        EXTRA_LIBS="${EXTRA_LIBS} -framework Accelerate -framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders"
         build
         sign ${BUILD_DIR}/bin/ollama_llama_server
         compress
